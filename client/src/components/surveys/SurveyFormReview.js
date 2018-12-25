@@ -1,7 +1,8 @@
 import React from 'react'
 import { connect } from 'react-redux'
+import formFields from './formFields'
 
-const SurveyFormReview = ({ onCancel }) => {
+const SurveyFormReview = ({ onCancel, formValues }) => {
   return (
     <div>
       <h5>Please review your entries.</h5>
