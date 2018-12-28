@@ -15,26 +15,25 @@ module.exports = app => {
   });
 
   app.post("/api/surveys/webhooks", (req, res) => {
-    const events = _.map(req.body, ({ email, url }) => {
-      const pathname = new URL(url).pathname;
-      const p = new Path("/api/surveys/:surveyId/:choice");
-      const match = p.test(pathname);
+    const p = new Path("/api/surveys/:surveyId/:choice");
 
-      if (match) {
-        return {
-          email,
-          surveyId: match.surveyId,
-          choice: match.choice
-        };
-      }
-    });
+    const events = _.chain(req.body)
+      .map(({ email, url }) => {
+        const match = p.test(new URL(url).pathname);
 
-    // Remove undefined
-    const compactEvents = _.compact(events);
-    // Remove duplicates
-    const uniqueEvents = _.uniqBy(compactEvents, "email", "surveyId");
+        if (match) {
+          return {
+            email,
+            surveyId: match.surveyId,
+            choice: match.choice
+          };
+        }
+      })
+      .compact()   // Remove undefined
+      .uniqBy("email", "surveyId")  // Remove duplicates
+      .value()
 
-    console.log(uniqueEvents);
+    console.log(events);
 
     // Respond so SendGrid server knows we've received webhook
     res.send({});
