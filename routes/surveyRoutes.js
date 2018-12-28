@@ -17,7 +17,7 @@ module.exports = app => {
   app.post("/api/surveys/webhooks", (req, res) => {
     const p = new Path("/api/surveys/:surveyId/:choice");
 
-    const events = _.chain(req.body)
+    _.chain(req.body)
       .map(({ email, url }) => {
         const match = p.test(new URL(url).pathname);
 
@@ -29,11 +29,27 @@ module.exports = app => {
           };
         }
       })
-      .compact()   // Remove undefined
-      .uniqBy("email", "surveyId")  // Remove duplicates
-      .value()
-
-    console.log(events);
+      .compact() // Remove undefined
+      .uniqBy("email", "surveyId") // Remove duplicates
+      .each(({ surveyId, email, choice }) => {
+        // Find and update record in database
+        Survey.updateOne(
+          {
+            _id: surveyId,
+            recipients: {
+              $elemMatch: {
+                email: email,
+                responded: false
+              }
+            }
+          },
+          {
+            $inc: { [choice]: 1 },
+            $set: { "recipients.$.responded": true }
+          }
+        ).exec();
+      })
+      .value();
 
     // Respond so SendGrid server knows we've received webhook
     res.send({});
